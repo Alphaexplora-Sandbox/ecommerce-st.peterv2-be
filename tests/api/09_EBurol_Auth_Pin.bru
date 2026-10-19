@@ -1,0 +1,14 @@
+meta {
+  name: 09_EBurol_Auth_Pin
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{BASE_URL}}/api/v1/e-burol/session/EBR-402?pin=882194
+}
+
+assert {
+  res.status: eq 200
+  res.body.session.streamUrl: isDefined
+}
