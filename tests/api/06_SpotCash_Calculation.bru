@@ -1,0 +1,23 @@
+meta {
+  name: 06_SpotCash_Calculation
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{BASE_URL}}/api/v1/calculator/amortization
+  body: json
+}
+
+body:json {
+  {
+    "planId": "st-george",
+    "paymentTerm": "spotcash"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.discountAmount: eq 16500
+  res.body.netContractPrice: eq 148500
+}

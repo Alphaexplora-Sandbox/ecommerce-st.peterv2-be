@@ -1,0 +1,35 @@
+meta {
+  name: 07_Beneficiary_Sum_100
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{BASE_URL}}/api/v1/enrollment/validate-beneficiaries
+  body: json
+}
+
+body:json {
+  {
+    "beneficiaries": [
+      {
+        "fullName": "Maria Santos",
+        "relationship": "Daughter",
+        "percentageShare": 70,
+        "isPrimary": true
+      },
+      {
+        "fullName": "Paolo Santos",
+        "relationship": "Son",
+        "percentageShare": 30,
+        "isPrimary": true
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.valid: eq true
+  res.body.totalPercentage: eq 100
+}
