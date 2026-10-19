@@ -1,0 +1,62 @@
+name: ALPHACI 5 Promote
+run-name: Promote ${{ inputs.release-id }}
+'on':
+  workflow_dispatch:
+    inputs:
+      release-id:
+        required: true
+        type: string
+      deployment-id:
+        required: true
+        type: string
+      environment-id:
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: alphaci-promote-${{ inputs.environment-id }}
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      commit-sha: ${{ steps.release.outputs.commit-sha }}
+      image-backend: ${{ steps.release.outputs.image-backend }}
+    steps:
+      - name: Read the release and start the deployment
+        id: release
+        env:
+          ALPHACI_TOKEN: ${{ secrets.ALPHACI_TOKEN }}
+          ALPHACI_API_URL: https://enterprise.alphaci.com.ph
+          RELEASE_ID: ${{ inputs.release-id }}
+          DEPLOYMENT_ID: ${{ inputs.deployment-id }}
+          ENVIRONMENT_ID: ${{ inputs.environment-id }}
+          KNOWN_ENVIRONMENTS: ''
+          EXPECTED_TARGETS: '{}'
+        run: |-
+          set -euo pipefail
+          case " $KNOWN_ENVIRONMENTS " in *" $ENVIRONMENT_ID "*) ;; *) echo "::error::Unknown environment $ENVIRONMENT_ID"; exit 1 ;; esac
+          RELEASE=$(curl -sf --max-time 30 -G "$ALPHACI_API_URL/api/v1/ci/releases/$RELEASE_ID" --data-urlencode "repo=$GITHUB_REPOSITORY" -H "Authorization: Bearer $ALPHACI_TOKEN")
+          printf '%s' "$RELEASE" | jq -e --arg deployment "$DEPLOYMENT_ID" --arg environment "$ENVIRONMENT_ID" --argjson expected "$EXPECTED_TARGETS" '.deployments[] | select(.id == $deployment and .environmentId == $environment and .delivery == "workflow") | (.targetIds | sort) == ($expected[$environment] | sort)' >/dev/null || { echo "::error::Deployment targets changed; regenerate this project workflow before promoting."; exit 1; }
+          echo "commit-sha=$(printf '%s' "$RELEASE" | jq -r '.commitSha')" >> "$GITHUB_OUTPUT"
+          echo "image-backend=$(printf '%s' "$RELEASE" | jq -r '.artifacts[] | select(.slot == "backend") | .image + "@" + .digest')" >> "$GITHUB_OUTPUT"
+          curl -sf --max-time 30 -X POST "$ALPHACI_API_URL/api/v1/ci/deployments/$DEPLOYMENT_ID/status" -H "Authorization: Bearer $ALPHACI_TOKEN" -H "Content-Type: application/json" -d "$(jq -n --arg repo "$GITHUB_REPOSITORY" '{repoFullName:$repo,status:"deploying"}')"
+  report-deployment:
+    needs:
+      - release
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Report the promoted deployment
+        env:
+          ALPHACI_TOKEN: ${{ secrets.ALPHACI_TOKEN }}
+          ALPHACI_API_URL: https://enterprise.alphaci.com.ph
+          DEPLOYMENT_ID: ${{ inputs.deployment-id }}
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |-
+          set -euo pipefail
+          STATUS=healthy
+          for RESULT in $RESULTS; do case "$RESULT" in success|skipped) ;; *) STATUS=failed ;; esac; done
+          curl -sf --max-time 30 -X POST "$ALPHACI_API_URL/api/v1/ci/deployments/$DEPLOYMENT_ID/status" -H "Authorization: Bearer $ALPHACI_TOKEN" -H "Content-Type: application/json" -d "$(jq -n --arg repo "$GITHUB_REPOSITORY" --arg status "$STATUS" '{repoFullName:$repo,status:$status}')"
+          [ "$STATUS" = healthy ]
