@@ -1,0 +1,25 @@
+meta {
+  name: 03_Auth_Register
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{BASE_URL}}/api/v1/auth/register
+  body: json
+}
+
+body:json {
+  {
+    "email": "customer@stpeter.com.ph",
+    "password": "Password123!",
+    "fullName": "Maria Santos",
+    "phoneNumber": "+639178821940",
+    "role": "Planholder"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.token: isDefined
+}

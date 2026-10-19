@@ -1,0 +1,18 @@
+meta {
+  name: 10_Dashboard_Plans
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{BASE_URL}}/api/v1/dashboard/plans
+}
+
+headers {
+  Authorization: Bearer {{JWT_TOKEN}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.plans: isDefined
+}
