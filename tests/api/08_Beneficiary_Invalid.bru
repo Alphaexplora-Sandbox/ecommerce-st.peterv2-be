@@ -1,0 +1,34 @@
+meta {
+  name: 08_Beneficiary_Invalid
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{BASE_URL}}/api/v1/enrollment/validate-beneficiaries
+  body: json
+}
+
+body:json {
+  {
+    "beneficiaries": [
+      {
+        "fullName": "Maria Santos",
+        "relationship": "Daughter",
+        "percentageShare": 70,
+        "isPrimary": true
+      },
+      {
+        "fullName": "Paolo Santos",
+        "relationship": "Son",
+        "percentageShare": 40,
+        "isPrimary": true
+      }
+    ]
+  }
+}
+
+assert {
+  res.status: eq 400
+  res.body.valid: eq false
+}

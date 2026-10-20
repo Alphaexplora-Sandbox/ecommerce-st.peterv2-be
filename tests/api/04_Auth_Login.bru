@@ -1,0 +1,29 @@
+meta {
+  name: 04_Auth_Login
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{BASE_URL}}/api/v1/auth/login
+  body: json
+}
+
+body:json {
+  {
+    "email": "maria.santos@stpeter.com.ph",
+    "password": "Password123!"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.token: isDefined
+}
+
+tests {
+  test("save auth token", function() {
+    expect(res.getStatus()).to.equal(200);
+    bru.setEnvVar("JWT_TOKEN", res.body.token);
+  });
+}

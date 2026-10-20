@@ -1,0 +1,14 @@
+meta {
+  name: 05_Catalog_List
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{BASE_URL}}/api/v1/plans
+}
+
+assert {
+  res.status: eq 200
+  res.body.length: gte 6
+}
