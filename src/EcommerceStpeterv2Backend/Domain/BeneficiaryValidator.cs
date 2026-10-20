@@ -18,6 +18,13 @@ public static class BeneficiaryValidator
         }
 
         var list = beneficiaries.ToList();
+        // JSON can carry a null entry ("beneficiaries": [null]); it is invalid
+        // input, not a server error.
+        if (list.Exists(b => b is null))
+        {
+            return (false, "Each beneficiary must be an object.");
+        }
+
         var primaryList = list.Where(b => b.IsPrimary).ToList();
         if (!primaryList.Any())
         {
