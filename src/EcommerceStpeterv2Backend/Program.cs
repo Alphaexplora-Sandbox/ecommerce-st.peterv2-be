@@ -162,7 +162,7 @@ app.MapPost("/api/v1/enrollment/validate-beneficiaries", (BeneficiaryValidationR
     var (isValid, errorMessage) = BeneficiaryValidator.Validate(req.Beneficiaries);
     if (!isValid)
     {
-        var total = req.Beneficiaries?.Where(b => b.IsPrimary).Sum(b => b.PercentageShare) ?? 0m;
+        var total = req.Beneficiaries?.Where(b => b is not null && b.IsPrimary).Sum(b => b.PercentageShare) ?? 0m;
         return Results.BadRequest(new { valid = false, error = errorMessage, totalPercentage = total });
     }
 
@@ -386,7 +386,9 @@ app.MapPost("/api/v1/e-burol/session/{id}/tribute", (string id, TributeRequest r
     }
 
     var tribute = EBurolStore.AddTribute(id, req.SenderName.Trim(), req.Message.Trim(), req.Relation?.Trim() ?? "Friend/Family");
-    return Results.Created($"/api/v1/e-burol/session/{id}/tribute/{tribute.Id}", tribute);
+    // Escaped: the id is caller input, and a raw control character in the
+    // Location header makes the response itself fail.
+    return Results.Created($"/api/v1/e-burol/session/{Uri.EscapeDataString(id)}/tribute/{tribute.Id}", tribute);
 }).Produces<TributeMessage>(StatusCodes.Status201Created).Produces(StatusCodes.Status400BadRequest);
 
 app.Run();
