@@ -324,6 +324,7 @@ jobs:
       working-directory: .
       system-name: ecommerce-stpeterv2-backend
       base-url: ${{ needs.resolve-targets.outputs.api-uat }}
+      schema-url-path: /openapi/v1.json
       checkout-ref: ${{ needs.pipeline-context.outputs.sha }}
   report-results:
     if: ${{ always() && ((github.event_name != 'workflow_run' || github.event.workflow_run.head_repository.full_name == github.repository) && (github.event_name != 'workflow_run' || github.event.workflow_run.event != 'pull_request' || !contains(fromJSON('["dev","uat","main"]'), github.event.workflow_run.pull_requests[0].head.ref))) }}
